@@ -50,9 +50,11 @@ Mount a host directory to persist the SQLite DB across restarts.
 **User**
 - `/start` — registration flow (or info if already registered)
 - `/help` — list commands
+- `/zoom` — get Zoom link for the webinar (registered users only)
 - `/landing` — program landing URL
 - `/call` — schedule 30-min call
 - `/unsubscribe` — stop receiving broadcasts
+- Any non-command text from a registered user is forwarded to admins with an inline "Ответить" button. The first admin to click it locks the conversation and has 10 minutes to reply; the reply is delivered to the user as a plain message from the bot.
 
 **Admin** (only IDs in `ADMIN_IDS`)
 - `/stats` — total users, segment breakdown, unsubscribed count

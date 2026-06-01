@@ -10,11 +10,9 @@ from apscheduler.jobstores.sqlalchemy import SQLAlchemyJobStore
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.date import DateTrigger
 
-from config import DB_PATH
-
 import db
 from broadcast import send_to_users
-from config import CALL_LINK, LANDING_URL, TIMEZONE, ZOOM_LINK
+from config import CALL_LINK, DB_PATH, LANDING_URL, TIMEZONE, ZOOM_LINK
 from content import (
     M1_DAY_BEFORE, M2_ONE_HOUR, M3_THANKS, M4_REVEAL,
     M5_FAQ, M6_OPEN, M7_DEADLINE,

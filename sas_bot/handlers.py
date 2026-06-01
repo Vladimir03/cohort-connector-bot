@@ -28,6 +28,8 @@ from content import (
     M_ALREADY_REGISTERED,
     M_HELP,
     M_INTRO,
+    M_NAME_PROMPT,
+    M_ROLE_PROMPT,
     M_UNSUBSCRIBE,
     M_ZOOM,
     M_ZOOM_NOT_REGISTERED,

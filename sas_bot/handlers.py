@@ -97,7 +97,7 @@ async def cmd_start(message: Message, state: FSMContext) -> None:
 async def cb_register(cb: CallbackQuery, state: FSMContext) -> None:
     await cb.answer()
     await state.set_state(RegisterFlow.waiting_name)
-    await cb.message.answer("Как тебя зовут? Можно одно имя.")
+    await cb.message.answer(M_NAME_PROMPT)
 
 
 @router.message(RegisterFlow.waiting_name)
@@ -108,7 +108,7 @@ async def reg_name(message: Message, state: FSMContext) -> None:
         return
     await state.update_data(name=name)
     await state.set_state(RegisterFlow.waiting_role)
-    await message.answer("Кем работаешь сейчас?", reply_markup=_role_kb())
+    await message.answer(M_ROLE_PROMPT, reply_markup=_role_kb())
 
 
 @router.message(RegisterFlow.waiting_role)

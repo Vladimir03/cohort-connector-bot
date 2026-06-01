@@ -56,7 +56,8 @@ async def _run_job(bot: Bot, job_id: str, template: str, filter_kind: str, segme
 
 
 def setup_scheduler(bot: Bot) -> AsyncIOScheduler:
-    scheduler = AsyncIOScheduler(timezone=TZ)
+    jobstores = {"default": SQLAlchemyJobStore(url=f"sqlite:///{DB_PATH}")}
+    scheduler = AsyncIOScheduler(timezone=TZ, jobstores=jobstores)
     for job_id, dt_naive, template, (filter_kind, segments) in JOBS:
         run_at = TZ.localize(dt_naive)
         scheduler.add_job(

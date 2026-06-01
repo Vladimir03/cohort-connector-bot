@@ -15,9 +15,14 @@ TELEGRAM_BOT_TOKEN = _require("TELEGRAM_BOT_TOKEN")
 ZOOM_LINK = _require("ZOOM_LINK")
 LANDING_URL = _require("LANDING_URL")
 CALL_LINK = _require("CALL_LINK")
+ADMIN_PASSWORD = _require("ADMIN_PASSWORD")
 
 _admin_raw = _require("ADMIN_IDS")
 ADMIN_IDS = {int(x.strip()) for x in _admin_raw.split(",") if x.strip()}
 
 DB_PATH = os.getenv("DB_PATH", "sas_bot.db")
 TIMEZONE = "Europe/Moscow"
+WEB_HOST = os.getenv("WEB_HOST", "0.0.0.0")
+# Railway/Render: respect $PORT if present
+WEB_PORT = int(os.getenv("PORT") or os.getenv("WEB_PORT", "8000"))
+ADMIN_USERNAME = "admin"

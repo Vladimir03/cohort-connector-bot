@@ -1,93 +1,98 @@
-# Senior Analyst Studio — Telegram Bot
+# Senior Analyst Studio — Telegram Bot + Web Admin
 
-Production-ready Telegram bot for webinar registration, scheduled reminders, and a post-webinar nurturing funnel.
+Production-ready Telegram bot (aiogram + SQLite + APScheduler) for webinar registration,
+scheduled reminders, post-webinar nurturing funnel, **plus** a FastAPI web admin
+dashboard (React + Vite + Tailwind + recharts) running in the same Python process.
 
-- **Stack**: Python 3.11+, aiogram 3.x, APScheduler, SQLite, python-dotenv
-- **Mode**: long-polling (no webhooks)
+- **Stack**: Python 3.11+, aiogram 3.x, APScheduler, FastAPI, uvicorn, SQLite (WAL)
+- **Frontend**: React 18 + Vite + TypeScript + Tailwind + TanStack Query + recharts
+- **Mode**: long-polling Telegram + HTTP server, coordinated via `asyncio.gather`
 - **Timezone**: Europe/Moscow
 
-## 1. Get credentials
-
-1. **Bot token** — open [@BotFather](https://t.me/BotFather) in Telegram, send `/newbot`, follow prompts, copy the token.
-2. **Admin Telegram IDs** — open [@userinfobot](https://t.me/userinfobot), copy your numeric ID. Comma-separate multiple admins.
-
-## 2. Configure env
+## 1. Configure
 
 ```bash
 cp .env.example .env
-# edit .env: TELEGRAM_BOT_TOKEN, ADMIN_IDS, ZOOM_LINK, LANDING_URL, CALL_LINK
 ```
 
-All variables are required — the bot fails fast on startup if any is missing.
+Required vars: `TELEGRAM_BOT_TOKEN`, `ADMIN_IDS`, `ZOOM_LINK`, `LANDING_URL`,
+`CALL_LINK`, `ADMIN_PASSWORD`. Optional: `WEB_HOST` (default `0.0.0.0`),
+`WEB_PORT` (default `8000`; on Railway/Render `$PORT` takes precedence).
 
-## 3. Run locally
+## 2. Run locally
 
 ```bash
-python -m venv .venv
-source .venv/bin/activate          # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
+# Build the dashboard (one-off, or after frontend changes):
+cd web/frontend && npm install && npm run build && cd ../..
 python bot.py
 ```
 
-DB file `sas_bot.db` is created automatically in the working directory.
+- Telegram bot starts polling.
+- Web admin available at **http://localhost:8000** (HTTP Basic Auth:
+  user `admin`, password from `ADMIN_PASSWORD`).
+- Health: `GET /health` → `{"status":"ok","bot_running":true}` (no auth).
 
-## 4. Run with Docker
+## 3. Docker
 
 ```bash
 docker build -t sas_bot .
 docker run -d --name sas_bot \
-  --env-file .env \
-  -v "$(pwd)/data:/app/data" \
-  -e DB_PATH=/app/data/sas_bot.db \
-  --restart unless-stopped \
-  sas_bot
+  --env-file .env -p 8000:8000 \
+  -v "$(pwd)/data:/app/data" -e DB_PATH=/app/data/sas_bot.db \
+  --restart unless-stopped sas_bot
 ```
 
-Mount a host directory to persist the SQLite DB across restarts.
+The image multi-stage builds the React bundle into `web/static/` and exposes port 8000.
 
-## 5. Commands
+## 4. Web admin
+
+- **Dashboard** `/` — stat cards, hourly registrations line chart, segment bars, funnel.
+- **Users** `/users` — filter by segment, search by name/username, paginate, open
+  detail dialog to view 30 latest events and change segment / mark unsubscribed.
+- **Events** `/events` — filter by event type and user_id.
+- **Broadcast** `/broadcast` — pick segment, preview target count, send via the
+  live bot instance with delivery stats.
+
+All `/api/*` routes require HTTP Basic Auth. Polling refreshes stats every 30s.
+
+## 5. Telegram commands
 
 **User**
-- `/start` — registration flow (or info if already registered)
+- `/start` — registration flow
 - `/help` — list commands
-- `/zoom` — get Zoom link for the webinar (registered users only)
-- `/landing` — program landing URL
-- `/call` — schedule 30-min call
-- `/unsubscribe` — stop receiving broadcasts
-- Any non-command text from a registered user is forwarded to admins with an inline "Ответить" button. The first admin to click it locks the conversation and has 10 minutes to reply; the reply is delivered to the user as a plain message from the bot.
+- `/zoom` — Zoom link (registered users only)
+- `/landing`, `/call`, `/unsubscribe`
+- Any non-command text → forwarded to admins with inline **Ответить** button;
+  first admin to click locks the conversation, has 10 minutes to reply.
 
-**Admin** (only IDs in `ADMIN_IDS`)
-- `/stats` — total users, segment breakdown, unsubscribed count
-- `/segment <tg_id|@username> <segment>` — set a user's segment
-  - segments: `pre_webinar`, `attended_live`, `no_show`, `hot_lead`, `customer`, `churned`
-- `/broadcast <segment|all> <text>` — ad-hoc broadcast
-- `/export` — download users CSV
-- `/test <message_id>` — preview a broadcast template
-  - ids: `m1_day_before`, `m2_one_hour`, `m3_thanks`, `m4_reveal`, `m5_faq`, `m6_open`, `m7_deadline`
+**Admin** (Telegram IDs in `ADMIN_IDS`)
+- `/stats`, `/segment <tg_id|@username> <segment>`, `/broadcast <segment|all> <text>`,
+  `/export`, `/test <message_id>`.
 
-## 6. Scheduled broadcasts
+## 6. Concurrency
 
-Configured in `scheduler.py` for the webinar on **2026-06-04 19:00 МСК**. Adjust dates in the `JOBS` list as needed. Jobs missed by less than 1 hour still fire (`misfire_grace_time=3600`).
+`db.py` opens SQLite with `journal_mode=WAL`, `busy_timeout=5000`,
+`synchronous=NORMAL`, fresh connection per operation. Safe for the bot
+writing (registrations, events) while the dashboard reads + admin segment
+edits happen concurrently.
 
-## 7. Operations notes
-
-- Users who block the bot are auto-marked `unsubscribed=1` on next broadcast attempt.
-- Sends are throttled to ~20 msg/sec to stay under Telegram's 30/sec limit.
-- All times in code are interpreted as `Europe/Moscow`.
-- After the live webinar, manually mark attendees with `/segment <id> attended_live` (and no-shows with `no_show`) so M3 targeting is accurate. Move CTA-clickers / repliers to `hot_lead` so M7 reaches them.
-
-## Files
+## 7. Project layout
 
 ```
 sas_bot/
-├── bot.py            # entry point
-├── config.py         # env loading + validation
-├── db.py             # SQLite layer
-├── handlers.py       # user commands + registration FSM
-├── admin.py          # admin commands
-├── broadcast.py      # send_to_users helper
-├── scheduler.py      # APScheduler jobs
-├── content.py        # message templates
+├── bot.py              # entry: asyncio.gather(bot polling, uvicorn)
+├── config.py           # env validation
+├── db.py               # SQLite (WAL) + analytics queries
+├── handlers.py         # /start FSM, /zoom, message forwarding, ReplyFlow
+├── admin.py            # /stats /segment /broadcast /export /test
+├── broadcast.py        # rate-limited sender
+├── scheduler.py        # APScheduler jobs (M1–M7)
+├── content.py          # message templates
+├── web/
+│   ├── api.py          # FastAPI app + HTTP Basic auth
+│   ├── static/         # built React bundle (served by FastAPI)
+│   └── frontend/       # Vite + React + Tailwind sources
 ├── requirements.txt
 ├── Dockerfile
 └── .env.example

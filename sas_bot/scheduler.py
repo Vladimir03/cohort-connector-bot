@@ -6,8 +6,11 @@ from datetime import datetime
 
 import pytz
 from aiogram import Bot
+from apscheduler.jobstores.sqlalchemy import SQLAlchemyJobStore
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.date import DateTrigger
+
+from config import DB_PATH
 
 import db
 from broadcast import send_to_users

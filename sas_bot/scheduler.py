@@ -26,7 +26,7 @@ FORMAT_KWARGS = {"zoom_link": ZOOM_LINK, "landing_url": LANDING_URL, "call_link"
 # (job_id, run_at_msk, template, target_filter)
 # target_filter: ("in", [segments]) or ("not_in", [segments])
 JOBS = [
-    ("m1_day_before", datetime(2026, 6, 3, 10, 0), M1_DAY_BEFORE, ("in", ["pre_webinar"])),
+    ("m1_day_before", datetime(2026, 6, 3, 19, 0), M1_DAY_BEFORE, ("in", ["pre_webinar"])),
     ("m2_one_hour",   datetime(2026, 6, 4, 18, 0), M2_ONE_HOUR,   ("in", ["pre_webinar"])),
     ("m3_thanks",     datetime(2026, 6, 4, 21, 0), M3_THANKS,
         ("in", ["pre_webinar", "attended_live", "no_show"])),
@@ -48,6 +48,13 @@ async def _run_job(bot: Bot, job_id: str, template: str, filter_kind: str, segme
             users = db.get_users_for_broadcast(segments)
         else:
             users = db.get_users_not_in_segments(segments)
+        # Idempotency: drop anyone who already received this broadcast, so a
+        # restart within the misfire window can't double-send to the same people.
+        already = db.users_already_sent(job_id)
+        users = [u for u in users if u["tg_id"] not in already]
+        if not users:
+            log.info("Broadcast %s: nothing to send (everyone already got it)", job_id)
+            return
         sent, failed = await send_to_users(bot, users, template, job_id, FORMAT_KWARGS)
         log.info("Broadcast %s: sent=%d failed=%d", job_id, sent, failed)
     except Exception:

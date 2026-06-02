@@ -143,6 +143,17 @@ def get_users_not_in_segments(segments: Iterable[str]) -> list[sqlite3.Row]:
         return c.execute(q, segs).fetchall()
 
 
+def users_already_sent(job_id: str) -> set[int]:
+    """tg_ids that already received broadcast_<job_id> — used to make scheduled
+    broadcasts idempotent so a restart can't re-send to the same people."""
+    with _conn() as c:
+        rows = c.execute(
+            "SELECT DISTINCT user_id FROM events WHERE event_type=?",
+            (f"broadcast_{job_id}",),
+        ).fetchall()
+    return {r[0] for r in rows}
+
+
 def stats() -> dict:
     with _conn() as c:
         total = c.execute("SELECT COUNT(*) FROM users").fetchone()[0]

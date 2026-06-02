@@ -30,3 +30,17 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+
+# Secrets & local data (never commit)
+.env
+!.env.example
+*.db
+*.sqlite
+*.sqlite3

@@ -58,7 +58,7 @@ class ReplyFlow(StatesGroup):
 def _register_kb() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         inline_keyboard=[
-            [InlineKeyboardButton(text="Записаться на вебинар", callback_data="register")]
+            [InlineKeyboardButton(text="🔥 Записаться на вебинар", callback_data="register")]
         ]
     )
 
@@ -66,8 +66,8 @@ def _register_kb() -> InlineKeyboardMarkup:
 def _role_kb() -> ReplyKeyboardMarkup:
     return ReplyKeyboardMarkup(
         keyboard=[
-            [KeyboardButton(text="Product Analyst"), KeyboardButton(text="Marketing Analyst")],
-            [KeyboardButton(text="Data Analyst"), KeyboardButton(text="Другое")],
+            [KeyboardButton(text="Продуктовый аналитик"), KeyboardButton(text="Маркетинговый аналитик")],
+            [KeyboardButton(text="Дата-аналитик"), KeyboardButton(text="Другое")],
         ],
         resize_keyboard=True,
         one_time_keyboard=True,

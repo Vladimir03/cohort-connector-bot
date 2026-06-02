@@ -6,13 +6,12 @@ from datetime import datetime
 
 import pytz
 from aiogram import Bot
-from apscheduler.jobstores.sqlalchemy import SQLAlchemyJobStore
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.date import DateTrigger
 
 import db
 from broadcast import send_to_users
-from config import CALL_LINK, DB_PATH, LANDING_URL, TIMEZONE, ZOOM_LINK
+from config import CALL_LINK, LANDING_URL, TIMEZONE, ZOOM_LINK
 from content import (
     M1_DAY_BEFORE, M2_ONE_HOUR, M3_THANKS, M4_REVEAL,
     M5_FAQ, M6_OPEN, M7_DEADLINE,
@@ -56,8 +55,12 @@ async def _run_job(bot: Bot, job_id: str, template: str, filter_kind: str, segme
 
 
 def setup_scheduler(bot: Bot) -> AsyncIOScheduler:
-    jobstores = {"default": SQLAlchemyJobStore(url=f"sqlite:///{DB_PATH}")}
-    scheduler = AsyncIOScheduler(timezone=TZ, jobstores=jobstores)
+    # In-memory jobstore (the default). We intentionally do NOT use a persistent
+    # SQLAlchemyJobStore: it pickles every job into SQLite, and the aiogram Bot
+    # held in the job args contains an SSLContext that can't be pickled
+    # ("TypeError: cannot pickle 'SSLContext' object"). The 7 jobs are re-created
+    # from JOBS on every startup, so persistence isn't needed.
+    scheduler = AsyncIOScheduler(timezone=TZ)
     for job_id, dt_naive, template, (filter_kind, segments) in JOBS:
         run_at = TZ.localize(dt_naive)
         scheduler.add_job(

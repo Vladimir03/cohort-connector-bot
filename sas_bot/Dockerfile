@@ -1,15 +1,14 @@
-FROM node:20-slim AS frontend
-WORKDIR /fe
-COPY web/frontend/package.json web/frontend/package-lock.json* ./
-RUN npm install --no-audit --no-fund
-COPY web/frontend/ ./
-RUN npm run build
-
+# Single-stage build. The React admin dashboard is pre-built and committed
+# to web/static/, so there is no Node build step here — we just run the
+# Python bot + FastAPI admin. (The old Node stage tried to COPY the frontend
+# from /fe/dist/, but Vite outputs to ../static, so that build always failed.)
 FROM python:3.11-slim
 WORKDIR /app
+
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
+
 COPY . .
-COPY --from=frontend /fe/dist/ ./web/static/
+
 EXPOSE 8000
 CMD ["python", "bot.py"]

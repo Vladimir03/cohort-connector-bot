@@ -32,9 +32,9 @@ JOBS = [
         ("in", ["pre_webinar", "attended_live", "no_show"])),
     ("m4_reveal",     datetime(2026, 6, 5, 11, 0), M4_REVEAL,
         ("not_in", ["customer", "churned"])),
-    ("m5_faq",        datetime(2026, 6, 7, 11, 0), M5_FAQ,
+    ("m5_faq",        datetime(2026, 6, 6, 11, 0), M5_FAQ,
         ("not_in", ["customer", "churned"])),
-    ("m6_open",       datetime(2026, 6, 9, 11, 0), M6_OPEN,
+    ("m6_open",       datetime(2026, 6, 8, 11, 0), M6_OPEN,
         ("not_in", ["customer", "churned"])),
     ("m7_deadline",   datetime(2026, 6, 11, 11, 0), M7_DEADLINE,
         ("in", ["hot_lead"])),
@@ -80,3 +80,11 @@ def setup_scheduler(bot: Bot) -> AsyncIOScheduler:
         )
         log.info("Scheduled %s at %s", job_id, run_at)
     return scheduler
+
+
+def log_scheduled_jobs(scheduler: AsyncIOScheduler) -> None:
+    """Log every scheduled job and its next_run_time — to verify dates in Railway logs."""
+    jobs = scheduler.get_jobs()
+    log.info("=== Scheduled jobs (%d) ===", len(jobs))
+    for job in jobs:
+        log.info("  %s -> next_run_time=%s", job.id, job.next_run_time)

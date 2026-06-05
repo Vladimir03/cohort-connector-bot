@@ -13,7 +13,7 @@ import admin
 import db
 import handlers
 from config import TELEGRAM_BOT_TOKEN, WEB_HOST, WEB_PORT
-from scheduler import setup_scheduler
+from scheduler import log_scheduled_jobs, setup_scheduler
 from web.api import app as web_app, set_bot
 
 logging.basicConfig(
@@ -27,6 +27,7 @@ async def run_bot(bot: Bot, dp: Dispatcher) -> None:
     scheduler = setup_scheduler(bot)
     scheduler.start()
     log.info("Scheduler started")
+    log_scheduled_jobs(scheduler)
     try:
         await dp.start_polling(bot)
     finally:

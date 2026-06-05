@@ -154,6 +154,17 @@ def users_already_sent(job_id: str) -> set[int]:
     return {r[0] for r in rows}
 
 
+def get_segment_members(segment: str) -> list[sqlite3.Row]:
+    """All users in a segment (or everyone if 'all'), INCLUDING unsubscribed.
+    The caller decides who to skip — used by /broadcast_doc to count skipped."""
+    with _conn() as c:
+        if segment == "all":
+            return c.execute("SELECT * FROM users").fetchall()
+        if segment not in VALID_SEGMENTS:
+            raise ValueError(f"Invalid segment: {segment}")
+        return c.execute("SELECT * FROM users WHERE segment=?", (segment,)).fetchall()
+
+
 def stats() -> dict:
     with _conn() as c:
         total = c.execute("SELECT COUNT(*) FROM users").fetchone()[0]

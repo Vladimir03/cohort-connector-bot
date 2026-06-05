@@ -27,6 +27,7 @@ from content import (
     M0_WELCOME,
     M_ALREADY_REGISTERED,
     M_HELP,
+    M_HELP_ADMIN,
     M_INTRO,
     M_NAME_PROMPT,
     M_ROLE_PROMPT,
@@ -133,7 +134,10 @@ async def reg_role(message: Message, state: FSMContext) -> None:
 
 @router.message(Command("help"))
 async def cmd_help(message: Message) -> None:
-    await message.answer(M_HELP)
+    text = M_HELP
+    if message.from_user and message.from_user.id in ADMIN_IDS:
+        text += "\n\n" + M_HELP_ADMIN
+    await message.answer(text)
 
 
 @router.message(Command("unsubscribe"))
